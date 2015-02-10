@@ -1,4 +1,4 @@
-path = '/Users/catarina/Desktop/Faces/Faces_Resized_lots_of_features/';
+path = '/Users/catarina/Documents/Workspaces/MATLAB/Faces-Experiment/Lots_Features/';
 
 % read image in a 400 x 400 pixels
 main_image_good = imread( strcat(path, 'base_good.png') );
@@ -9,11 +9,6 @@ main_image_good = reshape( main_image_good, 1, prod(size(main_image_good)));
 % convert types
 main_image_good = cast( main_image_good, 'double' ); 
 
-% noise
-% main_image_good = reshape( main_image_good, 400, 400 );
-% main_image_good = imnoise( main_image_good, 'salt & pepper');
-% main_image_good = reshape( main_image_good, 1, prod(size(main_image_good)));
-    
 % read image in a 400 x 400 pixels
 main_image_bad = imread( strcat(path, 'base_bad.png') );
 
@@ -23,10 +18,15 @@ main_image_bad = reshape( main_image_bad, 1, prod(size(main_image_bad)));
 % convert types
 main_image_bad = cast( main_image_bad, 'double' );
 
-% noise
-main_image_bad = reshape( main_image_bad, 400, 400 );
-main_image_bad = imnoise( main_image_bad, 'salt & pepper' );
-main_image_bad = reshape( main_image_bad, 1, prod(size(main_image_bad)));
+% create superposition face. Classifying main image as Lork.
+% 60% of Narrow faces are Lorks, from which 70% are bad
+superposition_image_bad = 0.7*main_image_bad + 0.3*main_image_good;
+%superposition_image_bad = main_image_bad;
+
+% create superposition face. Classifying main image as Lork.
+% 60% of Narrow faces are Lorks, from which 70% are bad
+superposition_image_good = 0.3*main_image_bad + 0.7*main_image_good;
+%superposition_image_good = main_image_good;
 
 % ---------------------------------------------------------------
 
@@ -65,9 +65,9 @@ for i = 1 : 1 : length( list_files_bad )
     image_pixels_good = cast( image_pixels_good, 'double' );
     
     % apply gaussian noise of 30%
-    %image_pixels = reshape( image_pixels, 400, 400 );
-    %image_pixels = imnoise( image_pixels, 'gaussian', 0.3 );
-    %image_pixels = reshape( image_pixels, 1, prod(size(image_pixels)));
+    % image_pixels = reshape( image_pixels, 400, 400 );
+    % image_pixels = imnoise( image_pixels, 'gaussian', 0.3 );
+    % image_pixels = reshape( image_pixels, 1, prod(size(image_pixels)));
 
     % store the n-dimensional vector
     images_bad(i, :) = image_pixels_bad;
@@ -76,13 +76,13 @@ for i = 1 : 1 : length( list_files_bad )
     % measure the cosine similarity between the image read and the bad 
     % face
     
-    theta_bad = dot_product(main_image_bad, image_pixels_bad) /(dot_product(main_image_bad, main_image_bad)*dot_product(image_pixels_bad, image_pixels_bad));
+    theta_bad = dot_product(superposition_image_bad, image_pixels_bad) /(dot_product(superposition_image_bad, superposition_image_bad)*dot_product(image_pixels_bad, image_pixels_bad));
     thetas_bad(i) = acos(theta_bad);
     
     % measure the cosine similarity between the image read and the good
     % face
     
-    theta_good = dot_product(main_image_good, image_pixels_good) /(dot_product(main_image_good, main_image_good)*dot_product(image_pixels_good, image_pixels_good));
+    theta_good = dot_product(superposition_image_good, image_pixels_good) /(dot_product(superposition_image_good, superposition_image_good)*dot_product(image_pixels_good, image_pixels_good));
     thetas_good(i) = acos(theta_good);
     
 end
@@ -101,12 +101,16 @@ for i = 1 : length( thetas_bad )
 end
 
 % compute quantum probabilities
-
 for i = 1 : length( thetas_bad )
-   
-    probability_attack = 0.19*0.43 + 0.81*0.63 + 2*sqrt(0.19*0.43)*sqrt(0.81*0.63)*cos( thetas_bad(i) - thetas_good(i)  );
-    probability_withdraw = 0.19*0.57 + 0.81*0.37 + 2*sqrt(0.19*0.57)*sqrt(0.81*0.37)*cos( thetas_bad(i) - thetas_good(i) );
     
+    % busy's probabilities
+    %probability_attack = 0.19*0.43 + 0.81*0.63 + 2*sqrt(0.19*0.43)*sqrt(0.81*0.63)*cos( thetas_bad(i) - thetas_good(i)  );
+    %probability_withdraw = 0.19*0.57 + 0.81*0.37 + 2*sqrt(0.19*0.57)*sqrt(0.81*0.37)*cos( thetas_bad(i) - thetas_good(i) );
+    
+    % problem's probabilities
+    probability_attack = 0.42 + 0.12 + 2*sqrt(0.42)*sqrt(0.12)*cos( thetas_bad(i) - thetas_good(i) );
+    probability_withdraw = 0.18 + 0.28 + 2*sqrt(0.18)*sqrt(0.28)*cos( thetas_bad(i) - thetas_good(i) );
+     
     norm_prob = probability_attack + probability_withdraw;
     
     probability_attack = probability_attack / norm_prob;
@@ -119,16 +123,3 @@ for i = 1 : length( thetas_bad )
 end
 
 display( mean( quantum_probabilities_attack ));
-
-
-
-
-
-
-
-
-
-
-
-
-
